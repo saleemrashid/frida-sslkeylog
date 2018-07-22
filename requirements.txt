@@ -1,0 +1,2 @@
+frida-tools==1.0.0
+pyasn1==0.4.3
