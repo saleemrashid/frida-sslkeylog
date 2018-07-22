@@ -31,6 +31,8 @@ class Application(ConsoleApplication):
         def on_message(message, data):
             self._reactor.schedule(lambda: self._on_message(message, data))
 
+        self._session_cache = set()
+
         self._script = self._session.create_script(self._script())
         self._script.on("message", on_message)
 
@@ -54,19 +56,38 @@ class Application(ConsoleApplication):
 
         self._keylog(session_id, master_key)
 
+    def _cache_session(self, session_id):
+        # The hooks can catch the SSL session in an uninitialized state
+        if not session_id:
+            return False
+
+        if session_id in self._session_cache:
+            return False
+
+        self._session_cache.add(session_id)
+        return True
+
     def _keylog(self, session_id, master_key):
-        if len(session_id) != self.SESSION_ID_LENGTH:
-            self._log("warning", "Session ID length is {}".format(len(session_id)))
+        if not self._cache_session(session_id):
             return
 
-        if len(master_key) != self.MASTER_KEY_LENGTH:
-            self._log("warning", "Master Key length is {}".format(len(master_key)))
+        try:
+            keylog_str = self._keylog_str(session_id, master_key)
+        except ValueError as e:
+            self._log("warning", "Ignored key log: {}".format(e))
             return
 
-        self._write(self._keylog_str(session_id, master_key) + "\n")
+        self._log("info", "Logging SSL session: {}".format(keylog_str))
+        self._write(keylog_str + "\n")
 
-    @staticmethod
-    def _keylog_str(session_id, master_key):
+    @classmethod
+    def _keylog_str(cls, session_id, master_key):
+        if len(session_id) != cls.SESSION_ID_LENGTH:
+            raise ValueError("Session ID length is incorrect")
+
+        if len(master_key) != cls.MASTER_KEY_LENGTH:
+            raise ValueError("Master Key length is incorrect")
+
         return "RSA Session-ID:{} Master-Key:{}".format(
             session_id.hex(),
             master_key.hex(),
@@ -132,39 +153,10 @@ resolver.enumerateMatches("exports:*!SSL_connect", {
             return Memory.readByteArray(address, length);
         };
 
-        const addressCache = {};
-
-        function cacheGuard(address) {
-            if (address in addressCache) {
-                return false;
-            }
-
-            addressCache[address] = null;
-            return true;
-        }
-
-        function cacheDrop(address) {
-            delete addressCache[address];
-        }
-
         function handleSSL(ssl) {
-            if (cacheGuard(ssl)) {
-                const session = SSL_get_session(ssl);
-                send("session", encodeSSLSession(session));
-            }
+            const session = SSL_get_session(ssl);
+            send("session", encodeSSLSession(session));
         }
-
-        Interceptor.attach(match.address, {
-            onEnter: function (args) {
-                this.ssl = args[0];
-                cacheDrop(this.ssl);
-            },
-
-            onLeave: function (retvalue) {
-                cacheDrop(this.ssl);
-                handleSSL(this.ssl);
-            },
-        });
 
         function attachSSLExport(name) {
             Interceptor.attach(resolveExport(name), {
