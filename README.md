@@ -5,8 +5,9 @@ Log](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Forma
 for Wireshark, from a process using dynamically linked OpenSSL (or BoringSSL).
 
 This should include Java code on Android, or apps that bundle their own OpenSSL
-(or BoringSSL) dynamic library. But it does not support statically linked
-OpenSSL (or BoringSSL).
+(or BoringSSL) dynamic library. **But it does not support statically linked
+OpenSSL (or BoringSSL), or applications using alternative libraries such as
+Mozilla NSS.**
 
 This uses a Wireshark variant of the key log format, instead of the
 `CLIENT_RANDOM` label. This is because the Session ID and Master Key can be
@@ -43,8 +44,8 @@ pip install -r requirements.txt
     As the key log file is opened in append mode, you can run multiple
     instances of the tool at the same time.
 
-    Chromium-based browsers will not work because they statically link
-    BoringSSL. Firefox-based browsers will not work because they use NSS.
+    **Chromium-based browsers will not work because they statically link
+    BoringSSL. Firefox-based browsers will not work because they use NSS.**
 
  3. Set the "(Pre-)Master-Secret log filename" in the protocol configuration
     for SSL, in Wireshark. Wireshark should display a tab named "Decrypted SSL
