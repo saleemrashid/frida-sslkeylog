@@ -25,7 +25,7 @@ Despite the use of the label `RSA`, this is not RSA-specific.
 Install the dependencies (`frida-tools` and `pyasn1`).
 
 ```sh
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Usage
