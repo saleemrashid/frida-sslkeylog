@@ -38,7 +38,7 @@ class Application(ConsoleApplication):
 
         self._session_cache = set()
 
-        self._script = self._session.create_script(self._script())
+        self._script = self._session.create_script(self._agent())
         self._script.on("message", on_message)
 
         self._update_status("Loading script...")
@@ -99,7 +99,7 @@ class Application(ConsoleApplication):
         )
 
     @staticmethod
-    def _script():
+    def _agent():
         with open(AGENT_FILENAME) as f:
             return f.read()
 
