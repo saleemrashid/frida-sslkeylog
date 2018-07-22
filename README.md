@@ -1,5 +1,8 @@
 # frida-sslkeylog
 
+**TODO:** Need to improve reliability with the Wireshark SSL dissector. This is
+difficult to do without breaking ABI portability.
+
 Frida tool to dump an [NSS Key
 Log](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
 for Wireshark, from a process using dynamically linked OpenSSL (or BoringSSL).
