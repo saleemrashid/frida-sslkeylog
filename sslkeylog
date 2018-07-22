@@ -62,10 +62,6 @@ class Application(ConsoleApplication):
         self._keylog(session_id, master_key)
 
     def _cache_session(self, session_id):
-        # The hooks can catch the SSL session in an uninitialized state
-        if not session_id:
-            return False
-
         if session_id in self._session_cache:
             return False
 
@@ -73,6 +69,11 @@ class Application(ConsoleApplication):
         return True
 
     def _keylog(self, session_id, master_key):
+        # The hooks can catch the SSL session in an uninitialized state
+        if not session_id:
+            self._log("warning", "Uninitialized Session ID: {}".format(master_key.hex()))
+            return False
+
         if not self._cache_session(session_id):
             return
 

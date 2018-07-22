@@ -61,6 +61,16 @@ resolver.enumerateMatches("exports:*!SSL_connect", {
             send("session", encodeSSLSession(session));
         }
 
+        Interceptor.attach(match.address, {
+            onEnter: function(args) {
+                this.ssl = args[0];
+            },
+
+            onLeave: function (retvalue) {
+                handleSSL(this.ssl);
+            }
+        });
+
         function attachSSLExport(name) {
             Interceptor.attach(resolveExport(name), {
                 onEnter: function (args) {
