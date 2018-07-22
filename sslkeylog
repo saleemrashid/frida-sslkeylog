@@ -6,6 +6,9 @@ from pyasn1.codec.der import decoder
 
 class Application(ConsoleApplication):
 
+    SESSION_ID_LENGTH = 32
+    MASTER_KEY_LENGTH = 48
+
     def _add_options(self, parser):
         parser.add_option("-o", "--output", help="SSL keylog file to write")
 
@@ -52,6 +55,14 @@ class Application(ConsoleApplication):
         self._keylog(session_id, master_key)
 
     def _keylog(self, session_id, master_key):
+        if len(session_id) != self.SESSION_ID_LENGTH:
+            self._log("warning", "Session ID length is {}".format(len(session_id)))
+            return
+
+        if len(master_key) != self.MASTER_KEY_LENGTH:
+            self._log("warning", "Master Key length is {}".format(len(master_key)))
+            return
+
         self._write(self._keylog_str(session_id, master_key) + "\n")
 
     @staticmethod
@@ -121,10 +132,6 @@ resolver.enumerateMatches("exports:*!SSL_connect", {
             return Memory.readByteArray(address, length);
         };
 
-        function sendSSLSession(session) {
-            send("session", encodeSSLSession(session));
-        };
-
         const addressCache = {};
 
         function cacheGuard(address) {
@@ -140,26 +147,29 @@ resolver.enumerateMatches("exports:*!SSL_connect", {
             delete addressCache[address];
         }
 
-        Interceptor.attach(match.address, {
-            onEnter: function (args) {
-                const ssl = args[0];
-
-                cacheDrop(address);
-            }
-        });
-
         function handleSSL(ssl) {
             if (cacheGuard(ssl)) {
                 const session = SSL_get_session(ssl);
-                sendSSLSession(session);
+                send("session", encodeSSLSession(session));
             }
         }
+
+        Interceptor.attach(match.address, {
+            onEnter: function (args) {
+                this.ssl = args[0];
+                cacheDrop(this.ssl);
+            },
+
+            onLeave: function (retvalue) {
+                cacheDrop(this.ssl);
+                handleSSL(this.ssl);
+            },
+        });
 
         function attachSSLExport(name) {
             Interceptor.attach(resolveExport(name), {
                 onEnter: function (args) {
                     const ssl = args[0];
-
                     handleSSL(ssl);
                 }
             });
